@@ -1,0 +1,5 @@
+ssh/
+terraform.tfstate.backup
+terraform.tfstate
+.terraform/
+CFG/license.json

@@ -1,0 +1,2 @@
+#Enable InfluxDB
+influxdb[:enable] = true

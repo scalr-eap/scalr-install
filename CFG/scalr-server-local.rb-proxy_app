@@ -1,0 +1,11 @@
+# Proxy
+proxy[:enable] = true
+
+# Memcached
+memcached[:enable] = true
+
+# App and Graphics
+web[:enable] = true
+
+#Cron
+cron[:enable] = true
