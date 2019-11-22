@@ -54,11 +54,7 @@ variable "subnet" {
   default = "subnet-0ebb1058ad727cfdb"
 }
 
-<<<<<<< HEAD
 variable "name_prefix" {
   type = string
   default = "TF"
 }
-=======
- 
->>>>>>> 6eba510b9814eef1e756802e3aec202ef0da40ed
