@@ -1,7 +1,7 @@
 terraform {
   backend "remote" {
     hostname = "my.scalr.com"
-    organization = "org-sh20ttfrfn0ur28"
+    organization = "xxxxxxxxxx"
     workspaces {
       name = "tf-scalr-install"
     }
