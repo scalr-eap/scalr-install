@@ -2,19 +2,33 @@
 
 # take the template file and substitute the IPs
 
+exec 1>/var/tmp/$(basename $0).log
+
+exec 2>&1
+
+abort () {
+  echo "ERROR: Failed with $1 executing '$2' @ line $3"
+  exit $1
+}
+
+trap 'abort $? "$STEP" $LINENO' ERR
+
+
 PROXY_1_PUB=$1
 shift
 PROXY_1_PRIV=$1
 shift
-#PROXY_2=$1
-#shift
+PROXY_2_PRIV=$1
+shift
 DB_M=$1
 shift
-#DB_S=$1
-#shift
+DB_S=$1
+shift
 WORKER=$1
 shift
 INFLUXDB=$1
+
+STEP="Create config with cat"
 
 cat << ! > /var/tmp/scalr-server.rb
 ########################################################################################
@@ -28,9 +42,9 @@ cat << ! > /var/tmp/scalr-server.rb
 # You can use IPs for the below as well, but hostnames are preferable.
 ENDPOINT = '$PROXY_1_PUB'
 MASTER_MYSQL_SERVER_HOST = '$DB_M'
-#SLAVE_MYSQL_SERVER_HOST = '$DB_S'
+SLAVE_MYSQL_SERVER_HOST = '$DB_S'
 APP_SERVER_1 = '$PROXY_1_PRIV'
-#APP_SERVER_2 = '$PROXY_2'
+APP_SERVER_2 = '$PROXY_2_PRIV'
 WORKER_SERVER = '$WORKER'
 INFLUXDB_SERVER = '$INFLUXDB'
 MEMCACHED_PORT = "11211"
@@ -40,7 +54,7 @@ MEMCACHED_PORT = "11211"
 ####################
 enable_all false
 
-proto = 'https'  # Set up the SSL settings and this to 'https' to use HTTPS
+proto = 'http'  # Set up the SSL settings and this to 'https' to use HTTPS
 
 routing[:endpoint_scheme] = proto
 routing[:endpoint_host] = ENDPOINT
@@ -65,8 +79,7 @@ app[:mysql_analytics_host] = MASTER_MYSQL_SERVER_HOST
 app[:mysql_analytics_port] = 3306
 
 # Memcached Servers
-#app[:memcached_servers] = [APP_SERVER_1 + ':' + MEMCACHED_PORT, APP_SERVER_2 + ':' + MEMCACHED_PORT]
-#app[:memcached_servers] = [APP_SERVER_1 + ':' + MEMCACHED_PORT]
+app[:memcached_servers] = [APP_SERVER_1 + ':' + MEMCACHED_PORT, APP_SERVER_2 + ':' + MEMCACHED_PORT]
 
 # Look for the app and graphics locally as well
 proxy[:app_upstreams] = ['127.0.0.1:6000']
@@ -102,10 +115,12 @@ rabbitmq[:bind_host] = '0.0.0.0'
 rabbitmq[:mgmt_bind_host] = '0.0.0.0'
 proxy[:rabbitmq_upstreams] = [WORKER_SERVER]
 
+repos[:enable] = true
+
 app[:configuration] = {
   :scalr => {
       :ui => {
-         :login_warning => "WELCOME TO SCALR - INSTALLED by Terraform  <p>This is a multi-server Scalr installation entirely built by Terraform using Scalr as a remote Backend</p> A single template has done the following:<ul><li>Deployed Proxy, Worker, MySQL and Influxdb servers and installed Scalr</li> <li>Built the config based on the IP's returned by TF</li> <li>Deployed the config, license and local files to all servers</li> <li>Run reconfigure</li></ul>"
+         :login_warning => "WELCOME TO SCALR - INSTALLED by Terraform  <p>This is a multi-server Scalr installation entirely built by Terraform using Scalr as a remote Backend</p> A single template has done the following:<ul><li>Deployed 2 Proxie, Worker, MySQL and Influxdb servers and installed Scalr</li> <li> Configured a ELB on the proxies>/li> <li>Built the config based on the IP's and ELB dns name returned by TF</li> <li>Deployed the config, license and local files to all servers</li> <li>Run reconfigure</li></ul>"
       },
       :system => {
         :server_terminate_timeout => 'auto',
@@ -116,13 +131,13 @@ app[:configuration] = {
     },
     :scalarizr_update => {
       :mode => "solo",
-      :default_repo => "local-latest",
+      :default_repo => "latest",
       :repos => {
-        "local-latest" => {
-          :rpm_repo_url => "http://"+ENDPOINT+"/repos/rpm/local-latest/rhel/$releasever/$basearch",
-          :suse_repo_url => "http://"+ENDPOINT+"/repos/rpm/local-latest/suse/$releasever/$basearch",
-          :deb_repo_url => "http://"+ENDPOINT+"/repos/apt-plain/local-latest /",
-          :win_repo_url => "http://"+ENDPOINT+"/repos/win/local-latest",
+        "latest" => {
+          :rpm_repo_url => "http://"+ENDPOINT+"/repos/rpm/latest/rhel/$releasever/$basearch",
+          :suse_repo_url => "http://"+ENDPOINT+"/repos/rpm/latest/suse/$releasever/$basearch",
+          :deb_repo_url => "http://"+ENDPOINT+"/repos/apt-plain/latest /",
+          :win_repo_url => "http://"+ENDPOINT+"/repos/win/latest",
         },
       },
     },
@@ -130,3 +145,4 @@ app[:configuration] = {
 }
 
 !
+ 

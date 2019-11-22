@@ -17,31 +17,31 @@ resource "aws_security_group" "scalr_sg" {
 
   # SSH access from anywhere
   ingress {
-    from_port   = 0
+    from_port   = 22
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
   ingress {
-    from_port   = 0
+    from_port   = 6275
     to_port     = 6275
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
   ingress {
-    from_port   = 0
+    from_port   = 6276
     to_port     = 6276
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
   ingress {
-    from_port   = 0
+    from_port   = 6291
     to_port     = 6291
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
   ingress {
-    from_port   = 0
+    from_port   = 15671
     to_port     = 15671
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
@@ -58,13 +58,19 @@ resource "aws_security_group" "proxy_sg" {
   vpc_id      = var.vpc
 
   ingress {
-    from_port   = 0
+    from_port   = 80
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
   ingress {
-    from_port   = 0
+    from_port   = 5671
+    to_port     = 5671
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    from_port   = 11211
     to_port     = 11211
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
@@ -81,7 +87,7 @@ resource "aws_security_group" "mysql_sg" {
   vpc_id      = var.vpc
 
   ingress {
-    from_port   = 0
+    from_port   = 3306
     to_port     = 3306
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
@@ -97,4 +103,12 @@ resource "aws_security_group" "worker_sg" {
   description = "Used in the terraform"
   vpc_id      = var.vpc
 
+  ingress {
+    from_port   = 5671
+    to_port     = 5671
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
 }
+ 

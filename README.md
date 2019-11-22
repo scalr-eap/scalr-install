@@ -1,4 +1,4 @@
-# tf-scalr-install
+# scalr-install
 Install and configure Scalr with Terraform
 
 This template will install Scalr on multiple servers. Currently it sets up 4 servers
@@ -20,10 +20,11 @@ This is built for AWS and has some hardcoded config items in `variables.tf`
 To use the template
 
 1. Pull the repo.
-2. Add your license file as `CFG/license.json`
-3. Add you SSH private key as `SSH/id_rsa`
-4. Upload the public key to AWS and set the Key name in variables.tf (key_name)
-5. Adjust scalr.ui.login_warning in `scalr_install_set_config.sh` to suit your needs
-6. Create a CLI workspace in Scalr Next-Gen and configure the backend to match in `scalr-prod.tf`
-7. Create a Terraform Variable `TOKEN` in the workspace and set to the value of your download token. Mark as "Sensitive".
+2. Upload the public key to AWS and set the Key name in variables.tf (key_name)
+3. Adjust scalr.ui.login_warning in `scalr_install_set_config.sh` to suit your needs
+4. Create a CLI workspace in Scalr Next-Gen and configure the backend to match in `scalr-prod.tf`
+5. Create a Terraform Variable `token` in the workspace and set to the value of your download token. Mark as "Sensitive".
+6. Create a Terraform Variable `license` in the workspace and copy the full text of you Scalr license file into the value. Mark as "Sensitive".
+7. Create a Terraform Variable `private_ssh_key` in the workspace and copy the full text of you private key file in either PEM or PPK format into the value. Mark as "Sensitive".
 8. Run `terraform init;terraform apply` and watch the magic happen
+ 

@@ -1,10 +1,16 @@
 variable "scalr_aws_secret_key" {}
 variable "scalr_aws_access_key" {}
 
-variable "ssh_key" {}
+variable "token" {
+  type = string
+}
 
-variable "token" {}
+variable "license" {
+  type = string
+}
+
 variable "region" {
+  type = string
   default = "us-east-1"
 }
 
@@ -18,22 +24,41 @@ variable "amis" {
 }
 
 variable "instance_type" {
-   default = "t3.medium"
+  type = string
+  default = "t3.medium"
 }
 
 variable "key_name" {
+  type = string
   default = "PeterG"
 }
 
-variable "ssh_private_key" {
+variable "private_ssh_key" {
+  description = "The SSH Private key itself. This will be formatted by the Terraform template"
+  type = string
+}
+
+variable "ssh_private_key_file" {
+  type = string
   description = "Private SSH key to connect to VMs"
-  default     = "/Users/peterg/.ssh/id_rsa"
+  default     = "./ssh/id_rsa"
 }
 
 variable "vpc" {
+  type = string
   default = "vpc-0206e948abadc6a29"
 }
 
 variable "subnet" {
+  type = string
   default = "subnet-0ebb1058ad727cfdb"
 }
+
+<<<<<<< HEAD
+variable "name_prefix" {
+  type = string
+  default = "TF"
+}
+=======
+ 
+>>>>>>> 6eba510b9814eef1e756802e3aec202ef0da40ed
