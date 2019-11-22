@@ -1,14 +1,15 @@
 # scalr-install
 Install and configure Scalr with Terraform
 
-This template will install Scalr on multiple servers. Currently it sets up 4 servers
+This template will install Scalr on multiple servers. Currently it sets up 6 servers
 
-* Mysql (single server)
+* Mysql Master and Slave (replication NOT enabled, working on that)
 * influxDB
 * Worker
-* Proxy/App
+* Proxy/App x 2
 
-Extending this to HA Mysql, 2 Proxies and an LB is Phase 2
+AWS ELB created for the Proxies.
+
 Turning it into a Service Catalog offering is Phase 3
 
 This is built for AWS and has some hardcoded config items in `variables.tf`
@@ -27,4 +28,3 @@ To use the template
 6. Create a Terraform Variable `license` in the workspace and copy the full text of you Scalr license file into the value. Mark as "Sensitive".
 7. Create a Terraform Variable `private_ssh_key` in the workspace and copy the full text of you private key file in either PEM or PPK format into the value. Mark as "Sensitive".
 8. Run `terraform init;terraform apply` and watch the magic happen
- 
