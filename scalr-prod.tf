@@ -1,7 +1,7 @@
 terraform {
   backend "remote" {
     hostname = "my.scalr.com"
-    organization = "xxxxxxxxxx"
+    organization = "org-sh20ttfrfn0ur28"
     workspaces {
       name = "tf-scalr-install"
     }
@@ -22,6 +22,7 @@ resource "local_file" "ssh_key" {
 }
 
 resource "null_resource" "fix_key" {
+  depends_on = [local_file.ssh_key]
   provisioner "local-exec" {
     command = "(HF=$(cat ./ssh/temp_key | cut -d' ' -f2-4);echo '-----BEGIN '$HF;cat ./ssh/temp_key | sed -e 's/--.*-- //' -e 's/--.*--//' | awk '{for (i = 1; i <= NF; i++) print $i}';echo '-----END '$HF) > ${var.ssh_private_key_file}"
   }
