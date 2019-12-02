@@ -8,10 +8,31 @@ terraform {
   }
 }
 
+locals {
+  ssh_private_key_file = "./ssh/id_rsa"
+}
+
 provider "aws" {
     access_key = "${var.scalr_aws_access_key}"
     secret_key = "${var.scalr_aws_secret_key}"
     region     = var.region
+}
+# Obtain the AMI for the region
+
+data "aws_ami" "the_ami" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-bionic-18.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical
 }
 
 # This inelegant code takes the SSH private key from the variable and turns it back into a properly formatted key with line breaks
@@ -24,7 +45,14 @@ resource "local_file" "ssh_key" {
 resource "null_resource" "fix_key" {
   depends_on = [local_file.ssh_key]
   provisioner "local-exec" {
-    command = "(HF=$(cat ./ssh/temp_key | cut -d' ' -f2-4);echo '-----BEGIN '$HF;cat ./ssh/temp_key | sed -e 's/--.*-- //' -e 's/--.*--//' | awk '{for (i = 1; i <= NF; i++) print $i}';echo '-----END '$HF) > ${var.ssh_private_key_file}"
+    command = "(HF=$(cat ./ssh/temp_key | cut -d' ' -f2-4);echo '-----BEGIN '$HF;cat ./ssh/temp_key | sed -e 's/--.*-- //' -e 's/--.*--//' | awk '{for (i = 1; i <= NF; i++) print $i}';echo '-----END '$HF) > ${local.ssh_private_key_file}"
+  }
+}
+
+resource "null_resource" "ls" {
+  depends_on = [local_file.ssh_key]
+  provisioner "local-exec" {
+    command = "ls -l ssh"
   }
 }
 
@@ -35,7 +63,8 @@ resource "null_resource" "fix_key" {
 # 1
 
 resource "aws_instance" "proxy_1" {
-  ami             = var.amis[var.region]
+  depends_on      = [null_resource.fix_key]
+  ami             = "${data.aws_ami.the_ami.id}"
   instance_type   = var.instance_type
   key_name        = var.key_name
   vpc_security_group_ids = [ "${data.aws_security_group.default_sg.id}", "${aws_security_group.scalr_sg.id}", "${aws_security_group.proxy_sg.id}"]
@@ -49,12 +78,12 @@ resource "aws_instance" "proxy_1" {
         host	= self.public_ip
         type     = "ssh"
         user     = "ubuntu"
-        private_key = "${file(var.ssh_private_key_file)}"
+        private_key = "${file(local.ssh_private_key_file)}"
         timeout  = "20m"
   }
 
   provisioner "file" {
-        source = var.ssh_private_key_file
+        source = local.ssh_private_key_file
         destination = "~/.ssh/id_rsa"
   }
 
@@ -77,10 +106,11 @@ resource "aws_instance" "proxy_1" {
 }
 
 #
-# 2
+# Proxy 2
 
 resource "aws_instance" "proxy_2" {
-  ami             = var.amis[var.region]
+  depends_on      = [null_resource.fix_key]
+  ami             = "${data.aws_ami.the_ami.id}"
   instance_type   = var.instance_type
   key_name        = var.key_name
   vpc_security_group_ids = [ "${data.aws_security_group.default_sg.id}", "${aws_security_group.scalr_sg.id}", "${aws_security_group.proxy_sg.id}"]
@@ -94,7 +124,7 @@ resource "aws_instance" "proxy_2" {
         host	= self.public_ip
         type     = "ssh"
         user     = "ubuntu"
-        private_key = "${file(var.ssh_private_key_file)}"
+        private_key = "${file(local.ssh_private_key_file)}"
         timeout  = "20m"
   }
 
@@ -122,7 +152,8 @@ resource "aws_instance" "proxy_2" {
 # MySQL Servers
 
 resource "aws_instance" "mysql_master" {
-  ami             = var.amis[var.region]
+  depends_on      = [null_resource.fix_key]
+  ami             = "${data.aws_ami.the_ami.id}"
   instance_type   = var.instance_type
   key_name        = var.key_name
   vpc_security_group_ids = [ "${data.aws_security_group.default_sg.id}", "${aws_security_group.mysql_sg.id}","${aws_security_group.scalr_sg.id}"]
@@ -136,12 +167,17 @@ resource "aws_instance" "mysql_master" {
         host	= self.public_ip
         type     = "ssh"
         user     = "ubuntu"
-        private_key = "${file(var.ssh_private_key_file)}"
+        private_key = "${file(local.ssh_private_key_file)}"
         timeout  = "20m"
   }
 
 # NOTE: MySQL master scalr-server-local.rb cant be sent to server at this stage as we dont know slave IP
 #       This is done later prior to reconfigure
+
+  provisioner "file" {
+        source = local.ssh_private_key_file
+        destination = "~/.ssh/id_rsa"
+  }
 
   provisioner "file" {
       source = "./SCRIPTS/scalr_install_1.sh"
@@ -157,7 +193,8 @@ resource "aws_instance" "mysql_master" {
 }
 
 resource "aws_instance" "mysql_slave" {
-  ami             = var.amis[var.region]
+  depends_on      = [null_resource.fix_key]
+  ami             = "${data.aws_ami.the_ami.id}"
   instance_type   = var.instance_type
   key_name        = var.key_name
   vpc_security_group_ids = [ "${data.aws_security_group.default_sg.id}", "${aws_security_group.mysql_sg.id}","${aws_security_group.scalr_sg.id}"]
@@ -170,7 +207,7 @@ resource "aws_instance" "mysql_slave" {
           host	= self.public_ip
           type     = "ssh"
           user     = "ubuntu"
-          private_key = "${file(var.ssh_private_key_file)}"
+          private_key = "${file(local.ssh_private_key_file)}"
           timeout  = "20m"
     }
 
@@ -198,7 +235,8 @@ resource "aws_instance" "mysql_slave" {
 # Worker Server
 
 resource "aws_instance" "worker" {
-  ami             = var.amis[var.region]
+  depends_on      = [null_resource.fix_key]
+  ami             = "${data.aws_ami.the_ami.id}"
   instance_type   = var.instance_type
   key_name        = var.key_name
   vpc_security_group_ids = [ "${data.aws_security_group.default_sg.id}", "${aws_security_group.scalr_sg.id}", "${aws_security_group.worker_sg.id}"]
@@ -212,7 +250,7 @@ resource "aws_instance" "worker" {
         host	= self.public_ip
         type     = "ssh"
         user     = "ubuntu"
-        private_key = "${file(var.ssh_private_key_file)}"
+        private_key = "${file(local.ssh_private_key_file)}"
         timeout  = "20m"
   }
 
@@ -239,7 +277,8 @@ resource "aws_instance" "worker" {
 # Influxdb Server
 
 resource "aws_instance" "influxdb" {
-  ami             = var.amis[var.region]
+  depends_on      = [null_resource.fix_key]
+  ami             = "${data.aws_ami.the_ami.id}"
   instance_type   = var.instance_type
   key_name        = var.key_name
   vpc_security_group_ids = [ "${data.aws_security_group.default_sg.id}", "${aws_security_group.scalr_sg.id}"]
@@ -253,7 +292,7 @@ resource "aws_instance" "influxdb" {
         host	= self.public_ip
         type     = "ssh"
         user     = "ubuntu"
-        private_key = "${file(var.ssh_private_key_file)}"
+        private_key = "${file(local.ssh_private_key_file)}"
         timeout  = "20m"
   }
 
@@ -314,7 +353,7 @@ resource "null_resource" "create_config" {
         host	= aws_instance.proxy_1.public_ip
         type     = "ssh"
         user     = "ubuntu"
-        private_key = "${file(var.ssh_private_key_file)}"
+        private_key = "${file(local.ssh_private_key_file)}"
         timeout  = "20m"
   }
 
@@ -339,7 +378,7 @@ resource "null_resource" "copy_config" {
         host	= aws_instance.proxy_1.public_ip
         type     = "ssh"
         user     = "ubuntu"
-        private_key = "${file(var.ssh_private_key_file)}"
+        private_key = "${file(local.ssh_private_key_file)}"
         timeout  = "20m"
   }
 
@@ -364,7 +403,7 @@ resource "null_resource" "configure_mysql_master_1" {
         host	= aws_instance.mysql_master.public_ip
         type     = "ssh"
         user     = "ubuntu"
-        private_key = "${file(var.ssh_private_key_file)}"
+        private_key = "${file(local.ssh_private_key_file)}"
         timeout  = "20m"
   }
 
@@ -396,7 +435,7 @@ resource "null_resource" "configure_mysql_slave" {
         host	= aws_instance.mysql_slave.public_ip
         type     = "ssh"
         user     = "ubuntu"
-        private_key = "${file(var.ssh_private_key_file)}"
+        private_key = "${file(local.ssh_private_key_file)}"
         timeout  = "20m"
   }
 
@@ -415,42 +454,65 @@ resource "null_resource" "configure_mysql_slave" {
 
 # MySQL MASTER 2
 
-
 resource "null_resource" "configure_mysql_master_2" {
   depends_on = [null_resource.configure_mysql_slave]
   connection {
         host	= aws_instance.mysql_master.public_ip
         type     = "ssh"
         user     = "ubuntu"
-        private_key = "${file(var.ssh_private_key_file)}"
+        private_key = "${file(local.ssh_private_key_file)}"
         timeout  = "20m"
   }
 
   provisioner "file" {
-      source = "./SCRIPTS/start_replication.sh"
-      destination = "/var/tmp/start_replication.sh"
+      source = "./SCRIPTS/start_replication_master.sh"
+      destination = "/var/tmp/start_replication_master.sh"
   }
-/*
+
   provisioner "remote-exec" {
     inline = [
-      "chmod +x /var/tmp/start_replication.sh",
-      "sudo /var/tmp/start_replication.sh ${aws_instance.mysql_master.private_ip} ${aws_instance.mysql_slave.private_ip}",
+      "chmod +x /var/tmp/start_replication_master.sh",
+      "/var/tmp/start_replication_master.sh ${aws_instance.mysql_slave.private_ip}",
     ]
   }
-*/
+
 }
 
+# MySQL SLAVE 2
 
+resource "null_resource" "configure_mysql_slave_2" {
+  depends_on = [null_resource.configure_mysql_master_2]
+  connection {
+        host	= aws_instance.mysql_slave.public_ip
+        type     = "ssh"
+        user     = "ubuntu"
+        private_key = "${file(local.ssh_private_key_file)}"
+        timeout  = "20m"
+  }
+
+  provisioner "file" {
+      source = "./SCRIPTS/start_replication_slave.sh"
+      destination = "/var/tmp/start_replication_slave.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod +x /var/tmp/start_replication_slave.sh",
+      "/var/tmp/start_replication_slave.sh ${aws_instance.mysql_master.private_ip}",
+    ]
+  }
+
+}
 # Worker
 
 resource "null_resource" "configure_worker" {
 
-  depends_on = ["null_resource.configure_mysql_master_2"]
+  depends_on = ["null_resource.configure_mysql_slave_2"]
   connection {
         host	= aws_instance.worker.public_ip
         type     = "ssh"
         user     = "ubuntu"
-        private_key = "${file(var.ssh_private_key_file)}"
+        private_key = "${file(local.ssh_private_key_file)}"
         timeout  = "20m"
   }
 
@@ -476,7 +538,7 @@ resource "null_resource" "configure_influxdb" {
         host	= aws_instance.influxdb.public_ip
         type     = "ssh"
         user     = "ubuntu"
-        private_key = "${file(var.ssh_private_key_file)}"
+        private_key = "${file(local.ssh_private_key_file)}"
         timeout  = "20m"
   }
 
@@ -502,7 +564,7 @@ resource "null_resource" "configure_proxy_1" {
         host	= aws_instance.proxy_1.public_ip
         type     = "ssh"
         user     = "ubuntu"
-        private_key = "${file(var.ssh_private_key_file)}"
+        private_key = "${file(local.ssh_private_key_file)}"
         timeout  = "20m"
   }
 
@@ -528,7 +590,7 @@ resource "null_resource" "configure_proxy_2" {
         host	= aws_instance.proxy_2.public_ip
         type     = "ssh"
         user     = "ubuntu"
-        private_key = "${file(var.ssh_private_key_file)}"
+        private_key = "${file(local.ssh_private_key_file)}"
         timeout  = "20m"
   }
 
@@ -552,7 +614,7 @@ resource "null_resource" "get_info" {
         host	= aws_instance.proxy_1.public_ip
         type     = "ssh"
         user     = "ubuntu"
-        private_key = "${file(var.ssh_private_key_file)}"
+        private_key = "${file(local.ssh_private_key_file)}"
         timeout  = "20m"
   }
 

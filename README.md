@@ -1,30 +1,76 @@
 # scalr-install
-Install and configure Scalr with Terraform
+Install and configure Scalr with Terraform on AWS
 
 This template will install Scalr on multiple servers. Currently it sets up 6 servers
 
-* Mysql Master and Slave (replication NOT enabled, working on that)
+* Mysql Master and Slave with replication enabled
 * influxDB
 * Worker
 * Proxy/App x 2
+* AWS ELB created for the Proxies.
 
-AWS ELB created for the Proxies.
+This template is configured as follows.
 
-Turning it into a Service Catalog offering is Phase 3
+1. Built for AWS
+2. Auto selects latest Canonical Ubuntu 18.04 LTS AMI for the chosen region
+3. Requires user to define VPC and Subnet mappings either in terraform.tfvars(.json) or via policy bindings in scalr-module.hcl (Scalr Next-gen, see https://scalr-athena.readthedocs-hosted.com/en/latest/details/variables.html#binding-to-policy)
+4. Scalr requires 4GB minimum of Ram. Instance type must be set in terraform.tfvars(.json) or via policy binding.
 
-This is built for AWS and has some hardcoded config items in `variables.tf`
+Below are descriptions on how to use this template in 3 possible modes.
 
-* Region = us-east-1
-* AMI = Ubuntu 1604
-* Instance Type = t3.medium (4GB is the minimum for Scalr)
+* Locally
+* Scalr Next-gen as the remote backend
+* Scalr Next-Gen Service Catalog Offering
 
-To use the template
+## Using Locally
 
 1. Pull the repo.
-2. Upload the public key to AWS and set the Key name in variables.tf (key_name)
-3. Adjust scalr.ui.login_warning in `scalr_install_set_config.sh` to suit your needs
-4. Create a CLI workspace in Scalr Next-Gen and configure the backend to match in `scalr-prod.tf`
-5. Create a Terraform Variable `token` in the workspace and set to the value of your download token. Mark as "Sensitive".
-6. Create a Terraform Variable `license` in the workspace and copy the full text of you Scalr license file into the value. Mark as "Sensitive".
-7. Create a Terraform Variable `private_ssh_key` in the workspace and copy the full text of you private key file in either PEM or PPK format into the value. Mark as "Sensitive".
-8. Run `terraform init;terraform apply` and watch the magic happen
+1. Upload your public key to AWS.
+1. Set values for the following variables in terraform.tfvars(.json)
+1. `key_name` - Key in AWS.
+1. `token` - Your packagecloud.io download token supplied with the license.
+1. `license` - The full text of your Scalr license file.
+1. `private_ssh_key` - The full text of you private key file in either PEM or PPK format.
+1. `vpc` - VPC to be used.
+1. `subnet` - Subnet to be used.
+1. `instance_type` - Must be 4GB ram. t3.medium recommended.
+1. `name_prefix` - 1-3 character prefix to be added to all instance names.
+1. Adjust scalr.ui.login_warning in `scalr_install_set_config.sh` to suit your needs.
+1. Comment out the remote backend config block in `scalr-prod.tf` (`terraform {`).
+1. Add your AWS access and secret keys to terraform.tfvars(.json), or enter them at the run time prompts.
+1. Run `terraform init;terraform apply` and watch the magic happen.
+
+## Using with Scalr Next-Gen as Remote Backend
+
+1. Pull the repo.
+1. Upload the public key to AWS.
+1. Create a CLI workspace in Scalr Next-Gen and configure the backend to match in `scalr-prod.tf`.
+1. Create an TF API token in Scalr Next-Gen and add it to `~/.terraformrc`.
+1. In Scalr Workspace add Terraform variables and values as follows (note that terraform.tfvars(.json) in the template is not used with a remote backend).
+1. `key_name` - Key in AWS.
+1. `token` - Your packagecloud.io download token supplied with the license. Mark as "SENSITIVE".
+1. `license` - The full text of your Scalr license file. Mark as "SENSITIVE".
+1. `private_ssh_key` - The full text of you private key file in either PEM or PPK format. Mark as "SENSITIVE".
+1. `vpc` - VPC to be used.
+1. `subnet` - Subnet to be used.
+1. `instance_type` - Must be 4GB ram. t3.medium recommended.
+1. `name_prefix` - 1-3 character prefix to be added to all instance names.
+1. Adjust scalr.ui.login_warning in `scalr_install_set_config.sh` to suit your needs.
+1. Run `terraform init;terraform apply` and watch the magic happen.
+
+## Using with Scalr Next-Gen Service Catalog Offering.
+
+In general follow the example here https://scalr-athena.readthedocs-hosted.com/en/latest/next-gen/service_catalog.html#service-catalog
+
+For this specific template you need to do the following in Scalr
+
+1. Create Policies (scalr-module.hcl shows the policy bindings that are required)
+  1. cloud.locations - Policy to limit the cloud locations (note this can be all locations but the policy must exist)
+  1. cloud.networks - Create a policy for every location allowed in the cloud.locations policy.
+  1. cloud.subnets - Create a policy for every location/network (vpc) combination that is allowed.
+  1. cloud.instance_types - Restrict the instance types that are allowed. Minimum 4GB of ram.
+1. Create a Global Variable called `name_prefix_fmt` of type text with the REGEX `^[A-Z0-9]{1,3}$`.
+1. Fork or clone the Source repo (https://github.com/scalr-eap/scalr-install)
+1. Create the Service Catalog offering pointing to your copy repo
+1. Adjust scalr.ui.login_warning in `scalr_install_set_config.sh` to suit your needs.
+1. Request the offering.

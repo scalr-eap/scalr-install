@@ -2,59 +2,44 @@ variable "scalr_aws_secret_key" {}
 variable "scalr_aws_access_key" {}
 
 variable "token" {
+  description = "Paste in the packagecloud.io token that came with your license file."
   type = string
 }
 
 variable "license" {
+  description = "Paste in the entire contents of you Scalr license file"
   type = string
 }
 
 variable "region" {
+  description = "The AWS Region to deploy in"
   type = string
-  default = "us-east-1"
-}
-
-variable "amis" {
-  type = "map"
-  default = {
-    "us-east-1" = "ami-024a64a6685d05041"
-    "us-west-2" = "ami-005bdb005fb00e791"
-    "eu-central-1" = "ami-090f10efc254eaf55"
-  }
 }
 
 variable "instance_type" {
+  description = "Instance type must have minimum of 4GB ram and 30GB disk"
   type = string
-  default = "t3.medium"
 }
 
 variable "key_name" {
+  description = "The name of then public SSH key to be deployed to the servers. This must exist in AWS already"
   type = string
-  default = "PeterG"
 }
 
 variable "private_ssh_key" {
-  description = "The SSH Private key itself. This will be formatted by the Terraform template"
+  description = "The text of SSH Private key. This will be formatted by the Terraform template.<br>This will be used in the remote workspace to allow Terraform to connect to the servers and run scripts to configure Scalr. It only exists in the workspace for the duration of the run."
   type = string
-}
-
-variable "ssh_private_key_file" {
-  type = string
-  description = "Private SSH key to connect to VMs"
-  default     = "./ssh/id_rsa"
 }
 
 variable "vpc" {
   type = string
-  default = "vpc-0206e948abadc6a29"
 }
 
 variable "subnet" {
   type = string
-  default = "subnet-0ebb1058ad727cfdb"
-}
+  }
 
 variable "name_prefix" {
+  description = "1-3 char prefix for instance names"
   type = string
-  default = "TF"
 }

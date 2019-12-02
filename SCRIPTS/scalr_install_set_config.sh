@@ -120,7 +120,7 @@ repos[:enable] = true
 app[:configuration] = {
   :scalr => {
       :ui => {
-         :login_warning => "WELCOME TO SCALR - INSTALLED by Terraform  <p>This is a multi-server Scalr installation entirely built by Terraform using Scalr as a remote Backend</p> A single template has done the following:<ul><li>Deployed 2 Proxie, Worker, MySQL and Influxdb servers and installed Scalr</li> <li> Configured a ELB on the proxies>/li> <li>Built the config based on the IP's and ELB dns name returned by TF</li> <li>Deployed the config, license and local files to all servers</li> <li>Run reconfigure</li></ul>"
+         :login_warning => "WELCOME TO SCALR - INSTALLED by Terraform  <p>This is a multi-server Scalr installation entirely built by Terraform using Scalr as a remote Backend</p> A single template has done the following:<ul><li>Deployed 2 Proxies, Worker, MySQL Master and Slave, Influxdb servers and installed Scalr</li> <li> Configured a ELB on the proxies>/li> <li>Built the config based on the IP's and ELB dns name returned by TF</li> <li>Deployed the config, license and local files to all servers</li> <li>Enabled MySQL replication</li><li>Run reconfigure</li></ul>"
       },
       :system => {
         :server_terminate_timeout => 'auto',
@@ -145,4 +145,3 @@ app[:configuration] = {
 }
 
 !
- 
