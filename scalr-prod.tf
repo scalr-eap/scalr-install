@@ -49,13 +49,6 @@ resource "null_resource" "fix_key" {
   }
 }
 
-resource "null_resource" "ls" {
-  depends_on = [local_file.ssh_key]
-  provisioner "local-exec" {
-    command = "ls -l ssh"
-  }
-}
-
 ###############################
 #
 # Proxy Servers
