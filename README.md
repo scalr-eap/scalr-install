@@ -26,31 +26,37 @@ Below are descriptions on how to use this template in 3 possible modes.
 
 1. Pull the repo.
 1. Upload your public key to AWS.
-1. Set values for the following variables in terraform.tfvars(.json)
+1. Copy your Scalr license to ./license/license.json in the repo
+1. Copy your private ssh key to ./ssh/id_rsa in the repo
+1. Set values for the following variables in terraform.tfvars(.json) or provide values on the command line at runtime
+1. `region` - AWS Region to use.
 1. `key_name` - Key in AWS.
 1. `token` - Your packagecloud.io download token supplied with the license.
-1. `license` - The full text of your Scalr license file.
-1. `private_ssh_key` - The full text of you private key file in either PEM or PPK format.
 1. `vpc` - VPC to be used.
 1. `subnet` - Subnet to be used.
 1. `instance_type` - Must be 4GB ram. t3.medium recommended.
 1. `name_prefix` - 1-3 character prefix to be added to all instance names.
 1. Adjust scalr.ui.login_warning in `scalr_install_set_config.sh` to suit your needs.
-1. Comment out the remote backend config block in `scalr-prod.tf` (`terraform {`).
-1. Add your AWS access and secret keys to terraform.tfvars(.json), or enter them at the run time prompts.
+1. Comment out the remote backend config block in `scalr-prod.tf` (`terraform {......`).
+1. Add your AWS access and secret keys to terraform.tfvars(.json), or enter them at the run time prompts. (scalr_aws_access_key, scalr_aws_secret_key)
 1. Run `terraform init;terraform apply` and watch the magic happen.
 
 ## Using with Scalr Next-Gen as Remote Backend
 
+NOTE: SSH Key and Scalr license can either be provided via Files in the repo or through Variables in Scalr Next-Gen
+
 1. Pull the repo.
 1. Upload the public key to AWS.
+1. To provide the Scalr license via a file copy it to ./license/license.json in the repo
+1. To provide the SSH private key via a file copy it to ./shh/id_rsa in the repo
 1. Create a CLI workspace in Scalr Next-Gen and configure the backend to match in `scalr-prod.tf`.
 1. Create an TF API token in Scalr Next-Gen and add it to `~/.terraformrc`.
 1. In Scalr Workspace add Terraform variables and values as follows (note that terraform.tfvars(.json) in the template is not used with a remote backend).
+1. `region` - AWS Region to use.
 1. `key_name` - Key in AWS.
 1. `token` - Your packagecloud.io download token supplied with the license. Mark as "SENSITIVE".
-1. `license` - The full text of your Scalr license file. Mark as "SENSITIVE".
-1. `private_ssh_key` - The full text of you private key file in either PEM or PPK format. Mark as "SENSITIVE".
+1. To provide the license via variable: `license` - The full text of your Scalr license file. Mark as "SENSITIVE".
+1. To provide the SSH private key via variable: `ssh_private_key` - The full text of you private key file in either PEM or PPK format. Mark as "SENSITIVE".
 1. `vpc` - VPC to be used.
 1. `subnet` - Subnet to be used.
 1. `instance_type` - Must be 4GB ram. t3.medium recommended.

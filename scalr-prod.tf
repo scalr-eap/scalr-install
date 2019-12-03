@@ -8,8 +8,10 @@ terraform {
   }
 }
 
+
 locals {
   ssh_private_key_file = "./ssh/id_rsa"
+  license_file         = "./license/license.json"
 }
 
 provider "aws" {
@@ -17,6 +19,41 @@ provider "aws" {
     secret_key = "${var.scalr_aws_secret_key}"
     region     = var.region
 }
+
+#---------------
+# Process the license and SSH key
+#
+# License and SSH key must supplied by input variables when the template is used via Scalr Next-Gen Service Catalog because user has no mechanism to provide them via a file.
+# With CLI runs (remote or local) user can provide the key and license in a file.
+# File names are set in local values (./ssh/id_rsa and ./license/license.json)
+# Variables are ssh_private_key and license which have default value of "FROM_FILE"
+# Code below will write the contents of the variables to their respective files if they are not set to "FROM_FILE"
+
+# SSH Key
+# This inelegant code takes the SSH private key from the variable and turns it back into a properly formatted key with line breaks
+
+resource "local_file" "ssh_key" {
+  count    = var.ssh_private_key == "FROM_FILE" ? 0 : 1
+  content  = var.ssh_private_key
+  filename = "./ssh/temp_key"
+}
+
+resource "null_resource" "fix_key" {
+  count      = var.ssh_private_key == "FROM_FILE" ? 0 : 1
+  depends_on = [local_file.ssh_key]
+  provisioner "local-exec" {
+    command = "(HF=$(cat ./ssh/temp_key | cut -d' ' -f2-4);echo '-----BEGIN '$HF;cat ./ssh/temp_key | sed -e 's/--.*-- //' -e 's/--.*--//' | awk '{for (i = 1; i <= NF; i++) print $i}';echo '-----END '$HF) > ${local.ssh_private_key_file}"
+  }
+}
+
+# license
+
+resource "local_file" "license_file" {
+  count      = var.license == "FROM_FILE" ? 0 : 1
+  content    = var.license
+  filename   = local.license_file
+}
+
 # Obtain the AMI for the region
 
 data "aws_ami" "the_ami" {
@@ -35,20 +72,6 @@ data "aws_ami" "the_ami" {
   owners = ["099720109477"] # Canonical
 }
 
-# This inelegant code takes the SSH private key from the variable and turns it back into a properly formatted key with line breaks
-
-resource "local_file" "ssh_key" {
-    content     = var.private_ssh_key
-    filename = "./ssh/temp_key"
-}
-
-resource "null_resource" "fix_key" {
-  depends_on = [local_file.ssh_key]
-  provisioner "local-exec" {
-    command = "(HF=$(cat ./ssh/temp_key | cut -d' ' -f2-4);echo '-----BEGIN '$HF;cat ./ssh/temp_key | sed -e 's/--.*-- //' -e 's/--.*--//' | awk '{for (i = 1; i <= NF; i++) print $i}';echo '-----END '$HF) > ${local.ssh_private_key_file}"
-  }
-}
-
 ###############################
 #
 # Proxy Servers
@@ -56,7 +79,7 @@ resource "null_resource" "fix_key" {
 # 1
 
 resource "aws_instance" "proxy_1" {
-  depends_on      = [null_resource.fix_key]
+  depends_on      = [null_resource.fix_key, local_file.license_file]
   ami             = "${data.aws_ami.the_ami.id}"
   instance_type   = var.instance_type
   key_name        = var.key_name
@@ -81,6 +104,11 @@ resource "aws_instance" "proxy_1" {
   }
 
   provisioner "file" {
+        source = local.license_file
+        destination = "/var/tmp/license.json"
+  }
+
+  provisioner "file" {
       source = "./SCRIPTS/scalr_install_1.sh"
       destination = "/var/tmp/scalr_install_1.sh"
   }
@@ -93,7 +121,7 @@ resource "aws_instance" "proxy_1" {
   provisioner "remote-exec" {
       inline = [
         "chmod +x /var/tmp/scalr_install_1.sh",
-        "sudo /var/tmp/scalr_install_1.sh '${var.token}' '${var.license}'",
+        "sudo /var/tmp/scalr_install_1.sh '${var.token}'",
       ]
   }
 }
@@ -102,7 +130,7 @@ resource "aws_instance" "proxy_1" {
 # Proxy 2
 
 resource "aws_instance" "proxy_2" {
-  depends_on      = [null_resource.fix_key]
+  depends_on      = [null_resource.fix_key, local_file.license_file]
   ami             = "${data.aws_ami.the_ami.id}"
   instance_type   = var.instance_type
   key_name        = var.key_name
@@ -122,6 +150,11 @@ resource "aws_instance" "proxy_2" {
   }
 
   provisioner "file" {
+        source = local.license_file
+        destination = "/var/tmp/license.json"
+  }
+
+  provisioner "file" {
       source = "./SCRIPTS/scalr_install_1.sh"
       destination = "/var/tmp/scalr_install_1.sh"
   }
@@ -134,7 +167,7 @@ resource "aws_instance" "proxy_2" {
   provisioner "remote-exec" {
       inline = [
         "chmod +x /var/tmp/scalr_install_1.sh",
-        "sudo /var/tmp/scalr_install_1.sh '${var.token}' '${var.license}'",
+        "sudo /var/tmp/scalr_install_1.sh '${var.token}'",
       ]
   }
 }
@@ -145,7 +178,7 @@ resource "aws_instance" "proxy_2" {
 # MySQL Servers
 
 resource "aws_instance" "mysql_master" {
-  depends_on      = [null_resource.fix_key]
+  depends_on      = [null_resource.fix_key, local_file.license_file]
   ami             = "${data.aws_ami.the_ami.id}"
   instance_type   = var.instance_type
   key_name        = var.key_name
@@ -173,6 +206,11 @@ resource "aws_instance" "mysql_master" {
   }
 
   provisioner "file" {
+        source = local.license_file
+        destination = "/var/tmp/license.json"
+  }
+
+  provisioner "file" {
       source = "./SCRIPTS/scalr_install_1.sh"
       destination = "/var/tmp/scalr_install_1.sh"
   }
@@ -180,13 +218,13 @@ resource "aws_instance" "mysql_master" {
   provisioner "remote-exec" {
       inline = [
         "chmod +x /var/tmp/scalr_install_1.sh",
-        "sudo /var/tmp/scalr_install_1.sh '${var.token}' '${var.license}'",
+        "sudo /var/tmp/scalr_install_1.sh '${var.token}'",
       ]
   }
 }
 
 resource "aws_instance" "mysql_slave" {
-  depends_on      = [null_resource.fix_key]
+  depends_on      = [null_resource.fix_key, local_file.license_file]
   ami             = "${data.aws_ami.the_ami.id}"
   instance_type   = var.instance_type
   key_name        = var.key_name
@@ -196,7 +234,8 @@ resource "aws_instance" "mysql_slave" {
   tags = {
     Name = "${var.name_prefix}-mysql-slave"
   }
-    connection {
+
+  connection {
           host	= self.public_ip
           type     = "ssh"
           user     = "ubuntu"
@@ -204,22 +243,26 @@ resource "aws_instance" "mysql_slave" {
           timeout  = "20m"
     }
 
-    provisioner "file" {
+  provisioner "file" {
+        source = local.license_file
+        destination = "/var/tmp/license.json"
+  }
+  provisioner "file" {
         source = "./SCRIPTS/scalr_install_1.sh"
         destination = "/var/tmp/scalr_install_1.sh"
-    }
+  }
 
-      provisioner "file" {
-          source = "./CFG/scalr-server-local.rb-mysql_slave"
-          destination = "/var/tmp/scalr-server-local.rb"
-      }
+  provisioner "file" {
+        source = "./CFG/scalr-server-local.rb-mysql_slave"
+        destination = "/var/tmp/scalr-server-local.rb"
+  }
 
-      provisioner "remote-exec" {
-          inline = [
-            "chmod +x /var/tmp/scalr_install_1.sh",
-            "sudo /var/tmp/scalr_install_1.sh '${var.token}' '${var.license}'",
-          ]
-      }
+  provisioner "remote-exec" {
+        inline = [
+          "chmod +x /var/tmp/scalr_install_1.sh",
+          "sudo /var/tmp/scalr_install_1.sh '${var.token}'",
+        ]
+  }
 }
 
 
@@ -228,7 +271,7 @@ resource "aws_instance" "mysql_slave" {
 # Worker Server
 
 resource "aws_instance" "worker" {
-  depends_on      = [null_resource.fix_key]
+  depends_on      = [null_resource.fix_key, local_file.license_file]
   ami             = "${data.aws_ami.the_ami.id}"
   instance_type   = var.instance_type
   key_name        = var.key_name
@@ -248,6 +291,11 @@ resource "aws_instance" "worker" {
   }
 
   provisioner "file" {
+        source = local.license_file
+        destination = "/var/tmp/license.json"
+  }
+
+  provisioner "file" {
       source = "./SCRIPTS/scalr_install_1.sh"
       destination = "/var/tmp/scalr_install_1.sh"
   }
@@ -260,7 +308,7 @@ resource "aws_instance" "worker" {
   provisioner "remote-exec" {
       inline = [
         "chmod +x /var/tmp/scalr_install_1.sh",
-        "sudo /var/tmp/scalr_install_1.sh '${var.token}' '${var.license}'",
+        "sudo /var/tmp/scalr_install_1.sh '${var.token}'",
       ]
   }
 }
@@ -270,7 +318,7 @@ resource "aws_instance" "worker" {
 # Influxdb Server
 
 resource "aws_instance" "influxdb" {
-  depends_on      = [null_resource.fix_key]
+  depends_on      = [null_resource.fix_key, local_file.license_file]
   ami             = "${data.aws_ami.the_ami.id}"
   instance_type   = var.instance_type
   key_name        = var.key_name
@@ -290,6 +338,11 @@ resource "aws_instance" "influxdb" {
   }
 
   provisioner "file" {
+        source = local.license_file
+        destination = "/var/tmp/license.json"
+  }
+
+  provisioner "file" {
       source = "./SCRIPTS/scalr_install_1.sh"
       destination = "/var/tmp/scalr_install_1.sh"
   }
@@ -302,7 +355,7 @@ resource "aws_instance" "influxdb" {
   provisioner "remote-exec" {
       inline = [
         "chmod +x /var/tmp/scalr_install_1.sh",
-        "sudo /var/tmp/scalr_install_1.sh '${var.token}' '${var.license}'",
+        "sudo /var/tmp/scalr_install_1.sh '${var.token}'",
       ]
   }
 }
@@ -329,6 +382,14 @@ resource "aws_elb" "scalr_lb" {
     instance_protocol = "http"
     lb_port           = 5671
     lb_protocol       = "http"
+  }
+
+  health_check {
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    timeout             = 3
+    target              = "TCP:80"
+    interval            = 30
   }
 
   tags = {

@@ -9,6 +9,7 @@ variable "token" {
 variable "license" {
   description = "Paste in the entire contents of you Scalr license file"
   type = string
+  default = "FROM_FILE"
 }
 
 variable "region" {
@@ -26,9 +27,10 @@ variable "key_name" {
   type = string
 }
 
-variable "private_ssh_key" {
+variable "ssh_private_key" {
   description = "The text of SSH Private key. This will be formatted by the Terraform template.<br>This will be used in the remote workspace to allow Terraform to connect to the servers and run scripts to configure Scalr. It only exists in the workspace for the duration of the run."
   type = string
+  default = "FROM_FILE"
 }
 
 variable "vpc" {

@@ -14,7 +14,6 @@ abort () {
 trap 'abort $? "$STEP" $LINENO' ERR
 
 TOKEN="${1}"
-LICENSE="${2}"
 
 STEP="curl to down load repo"
 curl -s https://${TOKEN}:@packagecloud.io/install/repositories/scalr/scalr-server-ee/script.deb.sh | bash
@@ -37,4 +36,4 @@ STEP="chmod 644 /etc/scalr-server/scalr-server-local.rb"
 [[ -f /etc/scalr-server/scalr-server-local.rb ]] && chmod 644 /etc/scalr-server/scalr-server-local.rb
 
 STEP="Create License"
-echo "${LICENSE}" > /etc/scalr-server/license.json
+cp /var/tmp/license.json /etc/scalr-server/license.json
