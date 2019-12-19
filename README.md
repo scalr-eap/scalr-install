@@ -11,7 +11,7 @@ This template will install Scalr on multiple servers. Currently it sets up 6 ser
 
 This template is configured as follows.
 
-1. Built for AWS
+1. Built for AWS - Expects credentials to be provided via Environment Variables
 2. Auto selects latest Canonical Ubuntu 18.04 LTS AMI for the chosen region
 3. Requires user to define VPC and Subnet mappings either in terraform.tfvars(.json) or via policy bindings in scalr-module.hcl (Scalr Next-gen, see https://scalr-athena.readthedocs-hosted.com/en/latest/details/variables.html#binding-to-policy)
 4. Scalr requires 4GB minimum of Ram. Instance type must be set in terraform.tfvars(.json) or via policy binding.
@@ -38,7 +38,7 @@ Below are descriptions on how to use this template in 3 possible modes.
 1. `name_prefix` - 1-3 character prefix to be added to all instance names.
 1. Adjust scalr.ui.login_warning in `scalr_install_set_config.sh` to suit your needs.
 1. Comment out the remote backend config block in `scalr-prod.tf` (`terraform {......`).
-1. Add your AWS access and secret keys to terraform.tfvars(.json), or enter them at the run time prompts. (scalr_aws_access_key, scalr_aws_secret_key)
+1. NEW --> Set your access keys for AWS using environment variables `export AWS_ACCESS_KEY_ID=<access_key> AWS_SECRET_ACCESS_KEY=<secret_key>`
 1. Run `terraform init;terraform apply` and watch the magic happen.
 
 ## Using with Scalr Next-Gen as Remote Backend

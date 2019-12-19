@@ -134,8 +134,8 @@ app[:configuration] = {
       :default_repo => "latest",
       :repos => {
         "latest" => {
-          :rpm_repo_url => "http://"+ENDPOINT+"/repos/rpm/latest/rhel/$releasever/$basearch",
-          :suse_repo_url => "http://"+ENDPOINT+"/repos/rpm/latest/suse/$releasever/$basearch",
+          :rpm_repo_url => "http://"+ENDPOINT+"/repos/rpm/latest/rhel/\$releasever/\$basearch",
+          :suse_repo_url => "http://"+ENDPOINT+"/repos/rpm/latest/suse/\$releasever/\$basearch",
           :deb_repo_url => "http://"+ENDPOINT+"/repos/apt-plain/latest /",
           :win_repo_url => "http://"+ENDPOINT+"/repos/win/latest",
         },
