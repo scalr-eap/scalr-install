@@ -116,10 +116,35 @@ resource "aws_instance" "proxy_1" {
       destination = "/var/tmp/scalr-server-local.rb"
   }
 
+}
+
+resource "aws_ebs_volume" "proxy_1_vol" {
+  availability_zone = "${aws_instance.proxy_1.availability_zone}"
+  type = "gp2"
+  size = 50
+}
+
+resource "aws_volume_attachment" "proxy_1_attach" {
+  device_name = "/dev/sds"
+  instance_id = "${aws_instance.proxy_1.id}"
+  volume_id   = "${aws_ebs_volume.proxy_1_vol.id}"
+}
+
+resource "null_resource" "p1_null" {
+  depends_on = [aws_instance.proxy_1]
+
+  connection {
+        host	= aws_instance.proxy_1.public_ip
+        type     = "ssh"
+        user     = "ubuntu"
+        private_key = "${file(local.ssh_private_key_file)}"
+        timeout  = "20m"
+  }
+
   provisioner "remote-exec" {
       inline = [
         "chmod +x /var/tmp/scalr_install_1.sh",
-        "sudo /var/tmp/scalr_install_1.sh '${var.token}'",
+        "sudo /var/tmp/scalr_install_1.sh '${var.token}' ${aws_volume_attachment.proxy_1_attach.volume_id}",
       ]
   }
 }
@@ -162,10 +187,35 @@ resource "aws_instance" "proxy_2" {
       destination = "/var/tmp/scalr-server-local.rb"
   }
 
+}
+
+resource "aws_ebs_volume" "proxy_2_vol" {
+  availability_zone = "${aws_instance.proxy_2.availability_zone}"
+  type = "gp2"
+  size = 50
+}
+
+resource "aws_volume_attachment" "proxy_2_attach" {
+  device_name = "/dev/sds"
+  instance_id = "${aws_instance.proxy_2.id}"
+  volume_id   = "${aws_ebs_volume.proxy_2_vol.id}"
+}
+
+resource "null_resource" "p2_null" {
+  depends_on = [aws_instance.proxy_2]
+
+  connection {
+        host	= aws_instance.proxy_2.public_ip
+        type     = "ssh"
+        user     = "ubuntu"
+        private_key = "${file(local.ssh_private_key_file)}"
+        timeout  = "20m"
+  }
+
   provisioner "remote-exec" {
       inline = [
         "chmod +x /var/tmp/scalr_install_1.sh",
-        "sudo /var/tmp/scalr_install_1.sh '${var.token}'",
+        "sudo /var/tmp/scalr_install_1.sh '${var.token}' ${aws_volume_attachment.proxy_2_attach.volume_id}",
       ]
   }
 }
@@ -213,10 +263,35 @@ resource "aws_instance" "mysql_master" {
       destination = "/var/tmp/scalr_install_1.sh"
   }
 
+}
+
+resource "aws_ebs_volume" "mysql_m_vol" {
+  availability_zone = "${aws_instance.mysql_master.availability_zone}"
+  type = "gp2"
+  size = 750
+}
+
+resource "aws_volume_attachment" "mysql_m_attach" {
+  device_name = "/dev/sds"
+  instance_id = "${aws_instance.mysql_master.id}"
+  volume_id   = "${aws_ebs_volume.mysql_m_vol.id}"
+}
+
+resource "null_resource" "mm_null" {
+  depends_on = [aws_instance.mysql_master]
+
+  connection {
+        host	= aws_instance.mysql_master.public_ip
+        type     = "ssh"
+        user     = "ubuntu"
+        private_key = "${file(local.ssh_private_key_file)}"
+        timeout  = "20m"
+  }
+
   provisioner "remote-exec" {
       inline = [
         "chmod +x /var/tmp/scalr_install_1.sh",
-        "sudo /var/tmp/scalr_install_1.sh '${var.token}'",
+        "sudo /var/tmp/scalr_install_1.sh '${var.token}' ${aws_volume_attachment.mysql_m_attach.volume_id}",
       ]
   }
 }
@@ -255,11 +330,36 @@ resource "aws_instance" "mysql_slave" {
         destination = "/var/tmp/scalr-server-local.rb"
   }
 
+}
+
+resource "aws_ebs_volume" "mysql_s_vol" {
+  availability_zone = "${aws_instance.mysql_slave.availability_zone}"
+  type = "gp2"
+  size = 750
+}
+
+resource "aws_volume_attachment" "mysql_s_attach" {
+  device_name = "/dev/sds"
+  instance_id = "${aws_instance.mysql_slave.id}"
+  volume_id   = "${aws_ebs_volume.mysql_s_vol.id}"
+}
+
+resource "null_resource" "ms_null" {
+  depends_on = [aws_instance.mysql_slave]
+
+  connection {
+        host	= aws_instance.mysql_slave.public_ip
+        type     = "ssh"
+        user     = "ubuntu"
+        private_key = "${file(local.ssh_private_key_file)}"
+        timeout  = "20m"
+  }
+
   provisioner "remote-exec" {
-        inline = [
-          "chmod +x /var/tmp/scalr_install_1.sh",
-          "sudo /var/tmp/scalr_install_1.sh '${var.token}'",
-        ]
+      inline = [
+        "chmod +x /var/tmp/scalr_install_1.sh",
+        "sudo /var/tmp/scalr_install_1.sh '${var.token}' ${aws_volume_attachment.mysql_s_attach.volume_id}",
+      ]
   }
 }
 
@@ -303,10 +403,35 @@ resource "aws_instance" "worker" {
       destination = "/var/tmp/scalr-server-local.rb"
   }
 
+}
+
+resource "aws_ebs_volume" "worker_vol" {
+  availability_zone = "${aws_instance.worker.availability_zone}"
+  type = "gp2"
+  size = 50
+}
+
+resource "aws_volume_attachment" "worker_attach" {
+  device_name = "/dev/sds"
+  instance_id = "${aws_instance.worker.id}"
+  volume_id   = "${aws_ebs_volume.worker_vol.id}"
+}
+
+resource "null_resource" "work_null" {
+  depends_on = [aws_instance.worker]
+
+  connection {
+        host	= aws_instance.worker.public_ip
+        type     = "ssh"
+        user     = "ubuntu"
+        private_key = "${file(local.ssh_private_key_file)}"
+        timeout  = "20m"
+  }
+
   provisioner "remote-exec" {
       inline = [
         "chmod +x /var/tmp/scalr_install_1.sh",
-        "sudo /var/tmp/scalr_install_1.sh '${var.token}'",
+        "sudo /var/tmp/scalr_install_1.sh '${var.token}' ${aws_volume_attachment.worker_attach.volume_id}",
       ]
   }
 }
@@ -350,10 +475,35 @@ resource "aws_instance" "influxdb" {
       destination = "/var/tmp/scalr-server-local.rb"
   }
 
+}
+
+resource "aws_ebs_volume" "influxdb_vol" {
+  availability_zone = "${aws_instance.influxdb.availability_zone}"
+  type = "gp2"
+  size = 100
+}
+
+resource "aws_volume_attachment" "influxdb_attach" {
+  device_name = "/dev/sds"
+  instance_id = "${aws_instance.influxdb.id}"
+  volume_id   = "${aws_ebs_volume.influxdb_vol.id}"
+}
+
+resource "null_resource" "inf_null" {
+  depends_on = [aws_instance.influxdb]
+
+  connection {
+        host	= aws_instance.influxdb.public_ip
+        type     = "ssh"
+        user     = "ubuntu"
+        private_key = "${file(local.ssh_private_key_file)}"
+        timeout  = "20m"
+  }
+
   provisioner "remote-exec" {
       inline = [
         "chmod +x /var/tmp/scalr_install_1.sh",
-        "sudo /var/tmp/scalr_install_1.sh '${var.token}'",
+        "sudo /var/tmp/scalr_install_1.sh '${var.token}' ${aws_volume_attachment.influxdb_attach.volume_id}",
       ]
   }
 }
@@ -399,7 +549,7 @@ resource "aws_elb" "scalr_lb" {
 # Copy secrets from proxy to other Servers
 
 resource "null_resource" "create_config" {
-  depends_on = [aws_instance.proxy_1, aws_instance.proxy_2, aws_instance.mysql_master, aws_instance.mysql_slave, aws_instance.worker, aws_instance.influxdb]
+  depends_on = [null_resource.p1_null,null_resource.p2_null,null_resource.mm_null,null_resource.ms_null,null_resource.inf_null,null_resource.work_null]
 
   connection {
         host	= aws_instance.proxy_1.public_ip
